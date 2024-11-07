@@ -4,11 +4,13 @@ const router = express.Router();
 const designerController = require("../controllers/designerController");
 const authenticateToken = require("../middleware/authMiddleware");
 
-// Update payment info
+// Route to get designer profile (requires authentication)
+router.get("/profile", authenticateToken, designerController.getProfile);
+
+// Route for updating payment information
 router.put(
   "/update-payment-info",
   authenticateToken,
   designerController.updatePaymentInfo
 );
-
 module.exports = router;
