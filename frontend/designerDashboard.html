@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Designer Dashboard</title>
+    <style>
+      .designer-dashboard-container {
+        display: flex;
+        font-family: Arial, sans-serif;
+      }
+
+      /* Sidebar styling */
+      .sidebar {
+        width: 250px;
+        height: 100vh;
+        background-color: #333;
+        color: #fff;
+        position: sticky;
+        top: 0;
+        padding-top: 20px;
+      }
+
+      .sidebar h2 {
+        text-align: center;
+        color: #f1f1f1;
+      }
+
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+      }
+
+      .sidebar ul li {
+        padding: 15px 20px;
+        cursor: pointer;
+        color: #ddd;
+      }
+
+      .sidebar ul li:hover,
+      .sidebar ul li.active {
+        background-color: #555;
+        color: #fff;
+      }
+
+      /* Main content styling */
+      .content {
+        flex-grow: 1;
+        padding: 20px;
+        background-color: #f9f9f9;
+      }
+
+      .section {
+        display: none;
+        /* Hide all sections initially */
+      }
+
+      .section.active {
+        display: block;
+        /* Show active section */
+      }
+
+      /* Card layout for uploaded templates */
+      .template-card {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        background-color: #fff;
+      }
+
+      .template-card img {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 8px;
+        margin-right: 15px;
+      }
+
+      .template-details {
+        flex-grow: 1;
+      }
+
+      .template-description {
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+
+      .template-status {
+        font-size: 14px;
+        color: #888;
+      }
+
+      .approved {
+        color: green;
+      }
+
+      .pending {
+        color: orange;
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Sidebar layout -->
+    <div class="designer-dashboard-container">
+      <div class="sidebar">
+        <h2>Dashboard</h2>
+        <ul>
+          <li class="sidebar-item" data-section="welcome-section">Welcome</li>
+          <li class="sidebar-item" data-section="upload-section">
+            Add New Template
+          </li>
+          <li class="sidebar-item" data-section="templates-section">
+            Uploaded Templates
+          </li>
+          <li class="sidebar-item" data-section="sales-section">Sales Track</li>
+          <li class="sidebar-item" data-section="payment-section">
+            Payment Info
+          </li>
+        </ul>
+      </div>
+
+      <!-- Main content area -->
+      <div class="content">
+        <!-- Welcome Section -->
+        <div id="welcome-section" class="section active">
+          <h2>Welcome, <span id="designerName">Designer</span>!</h2>
+          <p>
+            Here you can manage your templates, track sales, and update your
+            payment information.
+          </p>
+        </div>
+
+        <!-- Add New Template Section -->
+        <div id="upload-section" class="section">
+          <h2>Add New Template</h2>
+          <form id="templateForm">
+            <label for="description">Description:</label><br />
+            <input
+              type="text"
+              id="description"
+              name="description"
+              required
+            /><br /><br />
+
+            <label for="images">Upload Images (up to 4):</label><br />
+            <input
+              type="file"
+              id="images"
+              name="images"
+              multiple
+              accept="image/*"
+              required
+            /><br /><br />
+
+            <label for="sku">SKU:</label><br />
+            <input type="text" id="sku" name="sku" required /><br /><br />
+
+            <button type="submit">Upload Template</button>
+          </form>
+        </div>
+
+        <!-- Uploaded Templates Section -->
+        <div id="templates-section" class="section">
+          <h2>Your Uploaded Templates</h2>
+          <div id="templateList"></div>
+          <!-- Cards will be rendered here -->
+        </div>
+
+        <!-- Sales Tracking Section -->
+        <div id="sales-section" class="section">
+          <h2>Sales Track</h2>
+          <ul id="salesList"></ul>
+        </div>
+
+        <!-- Payment Information Section -->
+        <div id="payment-section" class="section">
+          <h2>Payment Info</h2>
+          <form id="paymentForm">
+            <label for="payment_method">Payment Method:</label><br />
+            <select id="payment_method" name="payment_method" required>
+              <option value="paypal">PayPal</option>
+              <option value="venmo">Venmo</option>
+              <option value="cashapp">Cash App</option></select
+            ><br /><br />
+
+            <div id="paypal-info" class="conditional-field">
+              <label for="paypal_email">PayPal Email:</label><br />
+              <input
+                type="email"
+                id="paypal_email"
+                name="paypal_email"
+              /><br /><br />
+            </div>
+
+            <div id="venmo-info" class="conditional-field">
+              <label for="venmo_username">Venmo Username:</label><br />
+              <input
+                type="text"
+                id="venmo_username"
+                name="venmo_username"
+              /><br /><br />
+            </div>
+
+            <div id="cashapp-info" class="conditional-field">
+              <label for="cashapp_username">Cash App Username ($Cashtag):</label
+              ><br />
+              <input
+                type="text"
+                id="cashapp_username"
+                name="cashapp_username"
+              /><br /><br />
+            </div>
+
+            <button type="submit">Update Payment Info</button>
+          </form>
+        </div>
+      </div>
+      <!-- Template List Section with Clickable Cards -->
+      <div id="templates-section" class="section">
+        <h2>Your Uploaded Templates</h2>
+        <div id="templateList"></div>
+        <!-- Cards will be rendered here -->
+      </div>
+
+      <!-- Modal for Viewing Additional Template Images -->
+      <div
+        id="templateModal"
+        style="
+          display: none;
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0, 0, 0, 0.5);
+        "
+      >
+        <div
+          style="
+            position: relative;
+            margin: 50px auto;
+            width: 70%;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+          "
+        >
+          <button
+            id="closeModal"
+            style="position: absolute; top: 10px; right: 10px"
+          >
+            Close
+          </button>
+          <h3 id="modalDescription"></h3>
+          <p>Status: <span id="modalStatus"></span></p>
+          <p>Uploaded on: <span id="modalUploadTime"></span></p>
+
+          <img
+            id="largeImage"
+            src=""
+            alt="Large View"
+            style="width: 100%; height: auto"
+          />
+          <div id="imageThumbnails" style="display: flex; margin-top: 10px">
+            <!-- Thumbnails of other images will be rendered here -->
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // const token = localStorage.getItem("token");
+        const token = document.cookie.replace(
+          /(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/,
+          "$1"
+        ); // Retrieve token from cookies
+        loadTemplates();
+        // Sidebar navigation
+        const sidebarItems = document.querySelectorAll(".sidebar-item");
+        const sections = document.querySelectorAll(".section");
+
+        sidebarItems.forEach((item) => {
+          item.addEventListener("click", function () {
+            sidebarItems.forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+
+            sections.forEach((section) => section.classList.remove("active"));
+            const sectionId = this.getAttribute("data-section");
+            document.getElementById(sectionId).classList.add("active");
+          });
+        });
+
+        displayDesignerName();
+        loadTemplates();
+        loadSalesData();
+
+        // Display Designer Name
+        function displayDesignerName() {
+          fetch("http://localhost:3000/designer/profile", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              document.getElementById("designerName").textContent = data.name;
+            })
+            .catch((error) =>
+              console.error("Error fetching designer profile:", error)
+            );
+        }
+
+        // Handle form submission for uploading a new template
+        document
+          .getElementById("templateForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append(
+              "description",
+              document.getElementById("description").value
+            );
+            formData.append("sku", document.getElementById("sku").value);
+
+            const imageFiles = document.getElementById("images").files;
+            for (let i = 0; i < imageFiles.length && i < 4; i++) {
+              formData.append("images", imageFiles[i]);
+            }
+
+            fetch("http://localhost:3000/template/upload", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            })
+              .then((response) => response.json())
+              .then((result) => {
+                if (result.message) {
+                  alert(result.message);
+                  loadTemplates(); // Refresh the uploaded templates list
+                } else {
+                  alert("Failed to upload template.");
+                }
+              })
+              .catch((error) =>
+                console.error("Error uploading template:", error)
+              );
+          });
+
+        // Load and display uploaded templates
+        // function loadTemplates() {
+        //   fetch("http://localhost:3000/template", {
+        //     method: "GET",
+        //     headers: { "Authorization": `Bearer ${token}` }
+        //   })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //       const templateList = document.getElementById("templateList");
+        //       templateList.innerHTML = ""; // Clear existing templates
+
+        //       data.forEach(template => {
+        //         const card = document.createElement("div");
+        //         card.classList.add("template-card");
+
+        //         const img = document.createElement("img");
+        //         img.src = template.images[0] || "https://via.placeholder.com/100";
+        //         img.alt = "Template Image";
+
+        //         const details = document.createElement("div");
+        //         details.classList.add("template-details");
+
+        //         const description = document.createElement("p");
+        //         description.classList.add("template-description");
+        //         description.textContent = template.description;
+
+        //         const status = document.createElement("p");
+        //         status.classList.add("template-status");
+        //         status.classList.add(template.status.toLowerCase());
+        //         status.textContent = `Status: ${template.status}`;
+
+        //         const uploadTime = document.createElement("p");
+        //         uploadTime.classList.add("template-upload-time");
+        //         uploadTime.textContent = `Uploaded on: ${new Date(template.createdAt).toLocaleString()}`;
+
+        //         details.appendChild(description);
+        //         details.appendChild(status);
+        //         details.appendChild(uploadTime);
+        //         card.appendChild(img);
+        //         card.appendChild(details);
+        //         templateList.appendChild(card);
+        //       });
+        //     })
+        //     .catch(error => console.error("Error fetching templates:", error));
+        // }
+
+        // Function to load and display uploaded templates
+        function loadTemplates() {
+          fetch("http://localhost:3000/template", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              const templateList = document.getElementById("templateList");
+              templateList.innerHTML = ""; // Clear existing templates
+
+              data.forEach((template) => {
+                const card = document.createElement("div");
+                card.classList.add("template-card");
+                card.dataset.template = JSON.stringify(template); // Store template data in card for modal
+
+                const img = document.createElement("img");
+                img.src =
+                  template.images[0] || "https://via.placeholder.com/100";
+                img.alt = "Template Image";
+
+                const details = document.createElement("div");
+                details.classList.add("template-details");
+
+                const description = document.createElement("p");
+                description.classList.add("template-description");
+                description.textContent = template.description;
+
+                const status = document.createElement("p");
+                status.classList.add("template-status");
+                status.classList.add(template.status.toLowerCase());
+                status.textContent = `Status: ${template.status}`;
+
+                details.appendChild(description);
+                details.appendChild(status);
+                card.appendChild(img);
+                card.appendChild(details);
+                templateList.appendChild(card);
+
+                // Event listener to open modal on card click
+                card.addEventListener("click", function () {
+                  openModal(JSON.parse(this.dataset.template));
+                });
+              });
+            })
+            .catch((error) =>
+              console.error("Error fetching templates:", error)
+            );
+        }
+
+        {
+          document.getElementById("modalDescription").textContent =
+            template.description;
+          document.getElementById("modalStatus").textContent = template.status;
+          document.getElementById("modalUploadTime").textContent = new Date(
+            template.createdAt
+          ).toLocaleString();
+
+          // Set main image to first image
+          document.getElementById("largeImage").src =
+            template.images[0] || "https://via.placeholder.com/100";
+
+          // Render thumbnails
+          const imageThumbnails = document.getElementById("imageThumbnails");
+          imageThumbnails.innerHTML = "";
+          template.images.forEach((imgSrc, index) => {
+            const thumb = document.createElement("img");
+            thumb.src = imgSrc;
+            thumb.style.width = "80px";
+            thumb.style.cursor = "pointer";
+            thumb.onclick = () =>
+              (document.getElementById("largeImage").src = imgSrc);
+            imageThumbnails.appendChild(thumb);
+          });
+
+          // Show modal
+          document.getElementById("templateModal").style.display = "block";
+        }
+
+        // Close modal
+        document
+          .getElementById("closeModal")
+          .addEventListener("click", function () {
+            document.getElementById("templateModal").style.display = "none";
+          });
+
+        // Function to load and display sales data
+        function loadSalesData() {
+          fetch("http://localhost:3000/template/sales-data", {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              const salesList = document.getElementById("salesList");
+              salesList.innerHTML = ""; // Clear existing sales data
+
+              data.forEach((template) => {
+                const listItem = document.createElement("li");
+                listItem.innerHTML = `
+                <strong>SKU:</strong> ${template.sku}<br>
+                <strong>Description:</strong> ${template.description}<br>
+                <strong>Sales Count:</strong> ${template.sales_count}<br>
+                <strong>Uploaded On:</strong> ${new Date(
+                  template.createdAt
+                ).toLocaleString()}
+              `;
+                salesList.appendChild(listItem);
+              });
+            })
+            .catch((error) =>
+              console.error("Error fetching sales data:", error)
+            );
+        }
+      });
+    </script> -->
+
+    <!-- <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const token = document.cookie.replace(
+          /(?:(?:^|.*;\s*)token\s*\=\s*([^;]*).*$)|^.*$/,
+          "$1"
+        );
+
+        function fetch(url, options = {}) {
+          return fetch(url, {
+            ...options,
+            headers: { ...options.headers, Authorization: `Bearer ${token}` },
+          }).then((res) => {
+            if (!res.ok)
+              throw new Error(`Error ${res.status}: ${res.statusText}`);
+            return res.json();
+          });
+        }
+
+        function showSection(sectionId) {
+          document
+            .querySelectorAll(".section")
+            .forEach((section) => section.classList.remove("active"));
+          document.getElementById(sectionId).classList.add("active");
+        }
+
+        document.querySelectorAll(".sidebar-item").forEach((item) => {
+          item.addEventListener("click", function () {
+            document
+              .querySelectorAll(".sidebar-item")
+              .forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+            showSection(this.getAttribute("data-section"));
+          });
+        });
+
+        function displayDesignerName() {
+          fetch("http://localhost:3000/designer/profile")
+            .then(
+              (data) =>
+                (document.getElementById("designerName").textContent =
+                  data.name)
+            )
+            .catch((error) =>
+              console.error("Error fetching designer profile:", error)
+            );
+        }
+
+        function loadTemplates() {
+          fetch("http://localhost:3000/template")
+            .then((data) => {
+              const templateList = document.getElementById("templateList");
+              templateList.innerHTML = "";
+
+              data.forEach((template) => {
+                const card = document.createElement("div");
+                card.classList.add("template-card");
+                card.dataset.template = JSON.stringify(template);
+
+                const img = document.createElement("img");
+                img.src =
+                  template.images[0] || "https://via.placeholder.com/100";
+                img.alt = "Template Image";
+
+                const details = document.createElement("div");
+                details.classList.add("template-details");
+
+                const description = document.createElement("p");
+                description.classList.add("template-description");
+                description.textContent = template.description;
+
+                const status = document.createElement("p");
+                status.classList.add(
+                  "template-status",
+                  template.status.toLowerCase()
+                );
+                status.textContent = `Status: ${template.status}`;
+
+                details.appendChild(description);
+                details.appendChild(status);
+                card.appendChild(img);
+                card.appendChild(details);
+                templateList.appendChild(card);
+
+                card.addEventListener("click", function () {
+                  openModal(JSON.parse(this.dataset.template));
+                });
+              });
+            })
+            .catch((error) =>
+              console.error("Error fetching templates:", error)
+            );
+        }
+
+        function loadSalesData() {
+          fetch("http://localhost:3000/template/sales-data")
+            .then((data) => {
+              const salesList = document.getElementById("salesList");
+              salesList.innerHTML = "";
+
+              data.forEach((template) => {
+                const listItem = document.createElement("li");
+                listItem.innerHTML = `
+            <strong>SKU:</strong> ${template.sku}<br>
+            <strong>Description:</strong> ${template.description}<br>
+            <strong>Sales Count:</strong> ${template.sales_count}<br>
+            <strong>Uploaded On:</strong> ${new Date(
+              template.createdAt
+            ).toLocaleString()}
+          `;
+                salesList.appendChild(listItem);
+              });
+            })
+            .catch((error) =>
+              console.error("Error fetching sales data:", error)
+            );
+        }
+
+        function openModal(template) {
+          document.getElementById("modalDescription").textContent =
+            template.description;
+          document.getElementById("modalStatus").textContent = template.status;
+          document.getElementById("modalUploadTime").textContent = new Date(
+            template.createdAt
+          ).toLocaleString();
+
+          document.getElementById("largeImage").src =
+            template.images[0] || "https://via.placeholder.com/100";
+          const imageThumbnails = document.getElementById("imageThumbnails");
+          imageThumbnails.innerHTML = "";
+
+          template.images.forEach((imgSrc) => {
+            const thumb = document.createElement("img");
+            thumb.src = imgSrc;
+            thumb.style.width = "80px";
+            thumb.style.cursor = "pointer";
+            thumb.onclick = () =>
+              (document.getElementById("largeImage").src = imgSrc);
+            imageThumbnails.appendChild(thumb);
+          });
+
+          document.getElementById("templateModal").style.display = "block";
+        }
+
+        document
+          .getElementById("closeModal")
+          .addEventListener("click", function () {
+            document.getElementById("templateModal").style.display = "none";
+          });
+
+        document
+          .getElementById("templateForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append(
+              "description",
+              document.getElementById("description").value
+            );
+            formData.append("sku", document.getElementById("sku").value);
+
+            const imageFiles = document.getElementById("images").files;
+            for (let i = 0; i < imageFiles.length && i < 4; i++) {
+              formData.append("images", imageFiles[i]);
+            }
+
+            fetch("http://localhost:3000/template/upload", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}` },
+              body: formData,
+            })
+              .then((response) => response.json())
+              .then((result) => {
+                if (result.message) {
+                  alert(result.message);
+                  loadTemplates();
+                } else {
+                  alert("Failed to upload template.");
+                }
+              })
+              .catch((error) =>
+                console.error("Error uploading template:", error)
+              );
+          });
+
+        loadTemplates();
+        displayDesignerName();
+        loadSalesData();
+      });
+    </script> -->
+
+    <!-- <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Utility function for fetch with error handling
+        function fetch(url, options = {}) {
+          return fetch(url, options).then((res) => {
+            if (!res.ok)
+              throw new Error(`Error ${res.status}: ${res.statusText}`);
+            return res.json();
+          });
+        }
+
+        function showSection(sectionId) {
+          document
+            .querySelectorAll(".section")
+            .forEach((section) => section.classList.remove("active"));
+          document.getElementById(sectionId).classList.add("active");
+        }
+
+        // Sidebar navigation
+        document.querySelectorAll(".sidebar-item").forEach((item) => {
+          item.addEventListener("click", function () {
+            document
+              .querySelectorAll(".sidebar-item")
+              .forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+            showSection(this.getAttribute("data-section"));
+          });
+        });
+
+        // Display Designer Name
+        function displayDesignerName() {
+          fetch("http://localhost:3000/designer/profile")
+            .then(
+              (data) =>
+                (document.getElementById("designerName").textContent =
+                  data.name)
+            )
+            .catch((error) =>
+              console.error("Error fetching designer profile:", error)
+            );
+        }
+
+        // Load Templates
+        function loadTemplates() {
+          fetch("http://localhost:3000/template", {
+            method: "GET",
+            credentials: "include", // Ensures cookies are sent with the request
+          })
+            .then((data) => {
+              const templateList = document.getElementById("templateList");
+              templateList.innerHTML = "";
+
+              data.forEach((template) => {
+                const card = document.createElement("div");
+                card.classList.add("template-card");
+                card.dataset.template = JSON.stringify(template);
+
+                const img = document.createElement("img");
+                img.src =
+                  template.images[0] || "https://via.placeholder.com/100";
+                img.alt = "Template Image";
+
+                const details = document.createElement("div");
+                details.classList.add("template-details");
+
+                const description = document.createElement("p");
+                description.classList.add("template-description");
+                description.textContent = template.description;
+
+                const status = document.createElement("p");
+                status.classList.add(
+                  "template-status",
+                  template.status.toLowerCase()
+                );
+                status.textContent = `Status: ${template.status}`;
+
+                details.appendChild(description);
+                details.appendChild(status);
+                card.appendChild(img);
+                card.appendChild(details);
+                templateList.appendChild(card);
+
+                card.addEventListener("click", function () {
+                  openModal(JSON.parse(this.dataset.template));
+                });
+              });
+            })
+            .catch((error) =>
+              console.error("Error fetching templates:", error)
+            );
+        }
+
+        // Open Modal
+        function openModal(template) {
+          document.getElementById("modalDescription").textContent =
+            template.description;
+          document.getElementById("modalStatus").textContent = template.status;
+          document.getElementById("modalUploadTime").textContent = new Date(
+            template.createdAt
+          ).toLocaleString();
+
+          document.getElementById("largeImage").src =
+            template.images[0] || "https://via.placeholder.com/100";
+          const imageThumbnails = document.getElementById("imageThumbnails");
+          imageThumbnails.innerHTML = "";
+
+          template.images.forEach((imgSrc) => {
+            const thumb = document.createElement("img");
+            thumb.src = imgSrc;
+            thumb.style.width = "80px";
+            thumb.style.cursor = "pointer";
+            thumb.onclick = () =>
+              (document.getElementById("largeImage").src = imgSrc);
+            imageThumbnails.appendChild(thumb);
+          });
+
+          document.getElementById("templateModal").style.display = "block";
+        }
+
+        document
+          .getElementById("closeModal")
+          .addEventListener("click", function () {
+            document.getElementById("templateModal").style.display = "none";
+          });
+
+        // Load Sales Data
+        function loadSalesData() {
+          fetch("http://localhost:3000/template/sales-data")
+            .then((data) => {
+              const salesList = document.getElementById("salesList");
+              salesList.innerHTML = "";
+
+              data.forEach((template) => {
+                const listItem = document.createElement("li");
+                listItem.innerHTML = `
+            <strong>SKU:</strong> ${template.sku}<br>
+            <strong>Description:</strong> ${template.description}<br>
+            <strong>Sales Count:</strong> ${template.sales_count}<br>
+            <strong>Uploaded On:</strong> ${new Date(
+              template.createdAt
+            ).toLocaleString()}
+          `;
+                salesList.appendChild(listItem);
+              });
+            })
+            .catch((error) =>
+              console.error("Error fetching sales data:", error)
+            );
+        }
+
+        // Upload New Template
+        document
+          .getElementById("templateForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append(
+              "description",
+              document.getElementById("description").value
+            );
+            formData.append("sku", document.getElementById("sku").value);
+
+            const imageFiles = document.getElementById("images").files;
+            for (let i = 0; i < imageFiles.length && i < 4; i++) {
+              formData.append("images", imageFiles[i]);
+            }
+
+            fetch("http://localhost:3000/template/upload", {
+              method: "POST",
+              body: formData,
+              credentials: "include",
+            })
+              .then((response) => response.json())
+              .then((result) => {
+                if (result.message) {
+                  alert(result.message);
+                  loadTemplates();
+                } else {
+                  alert("Failed to upload template.");
+                }
+              })
+              .catch((error) =>
+                console.error("Error uploading template:", error)
+              );
+          });
+
+        loadTemplates();
+        displayDesignerName();
+        loadSalesData();
+      });
+    </script> -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Helper function for fetching with credentials
+        function fetch(url, options = {}) {
+          return fetch(url, { ...options, credentials: "include" }).then(
+            (res) => {
+              if (!res.ok)
+                throw new Error(`Error ${res.status}: ${res.statusText}`);
+              return res.json();
+            }
+          );
+        }
+
+        // Display Designer Name
+        function displayDesignerName() {
+          fetch("http://localhost:3000/designer/profile")
+            .then((data) => {
+              document.getElementById("designerName").textContent = data.name;
+            })
+            .catch((error) =>
+              console.error("Error fetching designer profile:", error)
+            );
+        }
+
+        // Load Templates
+        function loadTemplates() {
+          fetch("http://localhost:3000/template")
+            .then((data) => {
+              const templateList = document.getElementById("templateList");
+              templateList.innerHTML = "";
+              data.forEach((template) => {
+                const card = document.createElement("div");
+                card.classList.add("template-card");
+
+                const img = document.createElement("img");
+                img.src =
+                  template.images[0] || "https://via.placeholder.com/100";
+                img.alt = "Template Image";
+
+                const details = document.createElement("div");
+                details.classList.add("template-details");
+
+                const description = document.createElement("p");
+                description.textContent = template.description;
+
+                const status = document.createElement("p");
+                status.textContent = `Status: ${template.status}`;
+                status.classList.add(
+                  "template-status",
+                  template.status.toLowerCase()
+                );
+
+                details.appendChild(description);
+                details.appendChild(status);
+                card.appendChild(img);
+                card.appendChild(details);
+                templateList.appendChild(card);
+              });
+            })
+            .catch((error) =>
+              console.error("Error fetching templates:", error)
+            );
+        }
+
+        // Load Sales Data
+        function loadSalesData() {
+          fetch("http://localhost:3000/template/sales-data")
+            .then((data) => {
+              const salesList = document.getElementById("salesList");
+              salesList.innerHTML = "";
+              data.forEach((template) => {
+                const listItem = document.createElement("li");
+                listItem.innerHTML = `
+            <strong>SKU:</strong> ${template.sku}<br>
+            <strong>Description:</strong> ${template.description}<br>
+            <strong>Sales Count:</strong> ${template.sales_count}<br>
+            <strong>Uploaded On:</strong> ${new Date(
+              template.createdAt
+            ).toLocaleString()}
+          `;
+                salesList.appendChild(listItem);
+              });
+            })
+            .catch((error) =>
+              console.error("Error fetching sales data:", error)
+            );
+        }
+
+        // Upload New Template
+        document
+          .getElementById("templateForm")
+          .addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append(
+              "description",
+              document.getElementById("description").value
+            );
+            formData.append("sku", document.getElementById("sku").value);
+
+            const imageFiles = document.getElementById("images").files;
+            for (let i = 0; i < imageFiles.length && i < 4; i++) {
+              formData.append("images", imageFiles[i]);
+            }
+
+            fetch("http://localhost:3000/template/upload", {
+              method: "POST",
+              body: formData,
+              credentials: "include",
+            })
+              .then((response) => response.json())
+              .then((result) => {
+                if (result.message) {
+                  alert(result.message);
+                  loadTemplates();
+                } else {
+                  alert("Failed to upload template.");
+                }
+              })
+              .catch((error) =>
+                console.error("Error uploading template:", error)
+              );
+          });
+
+        displayDesignerName();
+        loadTemplates();
+        loadSalesData();
+      });
+    </script>
+  </body>
+</html>
