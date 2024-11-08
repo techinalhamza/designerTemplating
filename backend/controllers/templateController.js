@@ -18,18 +18,17 @@ exports.uploadTemplate = async (req, res) => {
     return res.status(400).json({ message: "No files were uploaded." });
   }
 
-  const images = []; // Array to store Cloudinary URLs
+  const images = [];
 
   try {
-    // Loop through each uploaded file, upload it to Cloudinary, and delete from server
+    // Upload each image to Cloudinary and delete from server
     for (const file of req.files) {
-      // Upload image to Cloudinary
       const result = await cloudinary.uploader.upload(file.path, {
         folder: "templates",
       });
-      images.push(result.secure_url); // Store the Cloudinary URL
+      images.push(result.secure_url);
 
-      // Delete the file from local server
+      // Delete the file from local storage
       fs.unlinkSync(file.path);
     }
 
@@ -38,7 +37,8 @@ exports.uploadTemplate = async (req, res) => {
       designerId: req.user.id,
       description,
       sku,
-      images, // Store Cloudinary URLs in the template model
+      images,
+      status: "pending",
     });
 
     await template.save();
@@ -64,15 +64,30 @@ exports.getDesignerTemplates = async (req, res) => {
   }
 };
 
-// Get sales data for approved templates by designer
+// Get total revenue and detailed sales data for each template
 exports.getSalesData = async (req, res) => {
+  const COMMISSION_RATE = 0.3; // 30% commission rate
+  const PRICE_PER_TEMPLATE = 100; // Example price per template sale
+
   try {
     const templates = await Template.find({
       designerId: req.user.id,
       status: "approved",
     }).select("sku sales_count description images createdAt");
 
-    res.json(templates);
+    let totalRevenue = 0;
+
+    const templatesWithEarnings = templates.map((template) => {
+      const earnings =
+        template.sales_count * PRICE_PER_TEMPLATE * COMMISSION_RATE;
+      totalRevenue += earnings;
+      return {
+        ...template.toObject(),
+        earnings,
+      };
+    });
+
+    res.json({ totalRevenue, templates: templatesWithEarnings });
   } catch (error) {
     console.error("Error fetching sales data:", error);
     res.status(500).json({ message: "Error fetching sales data." });

@@ -8,18 +8,18 @@ const fs = require("fs");
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: "your_cloud_name",
-  api_key: "your_api_key",
-  api_secret: "your_api_secret",
+  cloud_name: "dwnolb6h5",
+  api_key: "143551781416216",
+  api_secret: "YfkCyzpwAgVpRQHME49FS-7YMXI",
 });
 
 // Configure Multer for temporary file storage
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/"); // Temporary local storage
+    cb(null, "uploads/");
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname); // Unique filename
+    cb(null, Date.now() + "-" + file.originalname);
   },
 });
 
@@ -30,33 +30,7 @@ router.post(
   "/upload",
   authenticateToken,
   upload.array("images", 4),
-  async (req, res) => {
-    const { description, sku } = req.body;
-    const images = [];
-
-    try {
-      // Upload each image to Cloudinary and delete from server
-      for (const file of req.files) {
-        const result = await cloudinary.uploader.upload(file.path, {
-          folder: "templates",
-        });
-        images.push(result.secure_url);
-
-        // Remove the image from local storage
-        fs.unlinkSync(file.path);
-      }
-
-      // Call the controller to save the template with Cloudinary URLs
-      await templateController.saveTemplate(req, res, {
-        description,
-        sku,
-        images,
-      });
-    } catch (error) {
-      console.error("Error uploading template:", error);
-      res.status(500).json({ message: "Template upload failed" });
-    }
-  }
+  templateController.uploadTemplate // Use the uploadTemplate function directly
 );
 
 // Route for fetching all templates uploaded by the designer

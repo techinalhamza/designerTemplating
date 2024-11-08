@@ -123,6 +123,15 @@
         margin: 5px;
         border-radius: 8px;
       }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
     </style>
   </head>
   <body>
@@ -194,6 +203,7 @@
         <!-- Sales Tracking Section -->
         <div id="sales-section" class="section">
           <h2>Sales Track</h2>
+          <p id="totalRevenue">Total Revenue: $0.00</p>
           <ul id="salesList"></ul>
         </div>
 
@@ -219,7 +229,11 @@
       <div class="modal-content">
         <button id="closeModal">Close</button>
         <h3 id="modalDescription"></h3>
+        <p><strong>SKU:</strong> <span id="modalSKU"></span></p>
         <p>Status: <span id="modalStatus"></span></p>
+        <p id="modalSalesCount" style="display: none"></p>
+        <p id="modalEarnings" style="display: none"></p>
+        <p id="modalUploadTime"></p>
         <img
           id="largeImage"
           src=""
@@ -230,124 +244,39 @@
       </div>
     </div>
 
+    <!-- Preloader -->
+    <div
+      id="preloader"
+      style="
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      "
+    >
+      <div
+        style="
+          border: 6px solid #f3f3f3;
+          border-top: 6px solid #3498db;
+          border-radius: 50%;
+          width: 50px;
+          height: 50px;
+          animation: spin 1s linear infinite;
+        "
+      ></div>
+    </div>
+
     <!-- <script>
       document.addEventListener("DOMContentLoaded", function () {
         const sidebarItems = document.querySelectorAll(".sidebar-item");
         const sections = document.querySelectorAll(".section");
-
         const token = localStorage.getItem("token");
-
-        sidebarItems.forEach((item) => {
-          item.addEventListener("click", function () {
-            sidebarItems.forEach((i) => i.classList.remove("active"));
-            this.classList.add("active");
-
-            sections.forEach((section) => section.classList.remove("active"));
-            const sectionId = this.getAttribute("data-section");
-            document.getElementById(sectionId).classList.add("active");
-          });
-        });
-
-        // Function to fetch and display the designer's name
-        async function displayDesignerName() {
-          try {
-            const response = await fetch(
-              "http://localhost:3000/designer/profile",
-              {
-                method: "GET",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`, // Include token in Authorization header
-                },
-              }
-            );
-            if (!response.ok) throw new Error("Failed to fetch profile");
-            const data = await response.json();
-            document.getElementById("designerName").textContent = `Welcome, ${
-              data.name || "Designer"
-            }!`;
-          } catch (error) {
-            console.error("Error fetching designer profile:", error);
-          }
-        }
-
-        // Dummy data for templates as placeholder
-        function loadTemplates() {
-          const dummyTemplates = [
-            {
-              description: "Sample Template 1",
-              images: [
-                "https://via.placeholder.com/100",
-                "https://via.placeholder.com/100",
-              ],
-              status: "Approved",
-              createdAt: new Date().toLocaleDateString(),
-            },
-          ];
-
-          const templateList = document.getElementById("templateList");
-          templateList.innerHTML = "";
-          dummyTemplates.forEach((template) => {
-            const card = document.createElement("div");
-            card.classList.add("template-card");
-
-            const img = document.createElement("img");
-            img.src = template.images[0];
-            card.appendChild(img);
-
-            const details = document.createElement("div");
-            details.classList.add("template-details");
-
-            const description = document.createElement("p");
-            description.textContent = template.description;
-            details.appendChild(description);
-
-            const status = document.createElement("p");
-            status.textContent = `Status: ${template.status}`;
-            details.appendChild(status);
-
-            card.appendChild(details);
-            templateList.appendChild(card);
-
-            card.addEventListener("click", () => openModal(template));
-          });
-        }
-
-        // Function to open modal with template details
-        function openModal(template) {
-          document.getElementById("modalDescription").textContent =
-            template.description;
-          document.getElementById("modalStatus").textContent = template.status;
-          document.getElementById("largeImage").src = template.images[0];
-
-          const thumbnails = document.getElementById("imageThumbnails");
-          thumbnails.innerHTML = ""; // Clear existing thumbnails
-          template.images.forEach((src) => {
-            const thumb = document.createElement("img");
-            thumb.src = src;
-            thumb.onclick = () =>
-              (document.getElementById("largeImage").src = src);
-            thumbnails.appendChild(thumb);
-          });
-
-          document.getElementById("templateModal").style.display = "flex";
-        }
-
-        // Close modal
-        document.getElementById("closeModal").addEventListener("click", () => {
-          document.getElementById("templateModal").style.display = "none";
-        });
-
-        displayDesignerName(); // Call the function to display the name on load
-        loadTemplates(); // Load templates on page load
-      });
-    </script> -->
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const sidebarItems = document.querySelectorAll(".sidebar-item");
-        const sections = document.querySelectorAll(".section");
-
-        const token = localStorage.getItem("token"); // Retrieve token from localStorage
 
         // Sidebar navigation
         sidebarItems.forEach((item) => {
@@ -370,7 +299,219 @@
                 method: "GET",
                 headers: {
                   "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`, // Include token in Authorization header
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (!response.ok) throw new Error("Failed to fetch profile");
+            const data = await response.json();
+            document.getElementById("designerName").textContent = `Welcome, ${
+              data.name || "Designer"
+            }!`;
+          } catch (error) {
+            console.error("Error fetching designer profile:", error);
+          }
+        }
+
+        displayDesignerName();
+        loadTemplates();
+
+        // Handle form submission for uploading a new template
+        document
+          .getElementById("templateForm")
+          .addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const description = document.getElementById("description").value;
+            const sku = document.getElementById("sku").value;
+            const imageFiles = document.getElementById("images").files;
+
+            if (imageFiles.length === 0) {
+              alert("Please upload at least one image.");
+              return;
+            }
+
+            if (imageFiles.length > 4) {
+              alert("You can only upload up to 4 images.");
+              return;
+            }
+
+            const formData = new FormData();
+            formData.append("description", description);
+            formData.append("sku", sku);
+
+            // Append up to 4 images to FormData
+            for (let i = 0; i < imageFiles.length; i++) {
+              formData.append("images", imageFiles[i]);
+            }
+
+            try {
+              const response = await fetch(
+                "http://localhost:3000/template/upload",
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: formData,
+                }
+              );
+
+              const result = await response.json();
+              if (response.ok) {
+                alert(result.message);
+                loadTemplates(); // Reload templates after successful upload
+              } else {
+                alert(result.message || "Failed to upload template.");
+              }
+            } catch (error) {
+              console.error("Error uploading template:", error);
+            }
+          });
+
+        // Fetch and display the templates
+        async function loadTemplates() {
+          try {
+            const response = await fetch("http://localhost:3000/template", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if (!response.ok) throw new Error("Failed to fetch templates");
+            const templates = await response.json();
+            displayTemplates(templates);
+          } catch (error) {
+            console.error("Error fetching templates:", error);
+          }
+        }
+
+        function displayTemplates(templates) {
+          const templateList = document.getElementById("templateList");
+          templateList.innerHTML = "";
+
+          templates.forEach((template) => {
+            const card = document.createElement("div");
+            card.classList.add("template-card");
+            card.dataset.template = JSON.stringify(template); // Store template data in card for modal
+
+            // Display the first image as a thumbnail
+            const img = document.createElement("img");
+            img.src = template.images[0] || "https://via.placeholder.com/100";
+            card.appendChild(img);
+
+            const details = document.createElement("div");
+            details.classList.add("template-details");
+
+            // Template description
+            const description = document.createElement("p");
+            description.classList.add("template-description");
+            description.textContent = template.description;
+            details.appendChild(description);
+
+            // Template status
+            const status = document.createElement("p");
+            status.classList.add("template-status");
+            status.textContent = `Status: ${template.status}`;
+            details.appendChild(status);
+
+            // Display upload time
+            const uploadTime = document.createElement("p");
+            uploadTime.textContent = `Uploaded on: ${new Date(
+              template.createdAt
+            ).toLocaleString()}`;
+            details.appendChild(uploadTime);
+
+            card.appendChild(details);
+            templateList.appendChild(card);
+
+            // Event listener to open modal on card click
+            card.addEventListener("click", function () {
+              openModal(JSON.parse(this.dataset.template));
+            });
+          });
+        }
+
+        // Open modal with template details
+        function openModal(template) {
+          document.getElementById("modalDescription").textContent =
+            template.description;
+          document.getElementById("modalSKU").textContent = template.sku;
+          document.getElementById("modalStatus").textContent = template.status;
+          document.getElementById("modalUploadTime").textContent = new Date(
+            template.createdAt
+          ).toLocaleString();
+
+          // If template is approved, display sales count
+          const salesCountElement = document.getElementById("modalSalesCount");
+          if (template.status === "approved") {
+            salesCountElement.textContent = `Sales Count: ${
+              template.sales_count || 0
+            }`;
+          } else {
+            salesCountElement.textContent = "";
+          }
+
+          // Set the large image
+          const largeImage = document.getElementById("largeImage");
+          largeImage.src =
+            template.images[0] || "https://via.placeholder.com/100";
+
+          // Display thumbnails for other images
+          const thumbnails = document.getElementById("imageThumbnails");
+          thumbnails.innerHTML = "";
+          template.images.forEach((src, index) => {
+            const thumb = document.createElement("img");
+            thumb.src = src;
+            thumb.style.cursor = "pointer";
+            thumb.onclick = () => (largeImage.src = src);
+            thumbnails.appendChild(thumb);
+          });
+
+          document.getElementById("templateModal").style.display = "flex";
+        }
+
+        // Close modal
+        document.getElementById("closeModal").addEventListener("click", () => {
+          document.getElementById("templateModal").style.display = "none";
+        });
+      });
+    </script> -->
+    <!-- good one -->
+    <!-- <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const sidebarItems = document.querySelectorAll(".sidebar-item");
+        const sections = document.querySelectorAll(".section");
+        const token = localStorage.getItem("token");
+
+        // Sidebar navigation
+        sidebarItems.forEach((item) => {
+          item.addEventListener("click", function () {
+            sidebarItems.forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+
+            sections.forEach((section) => section.classList.remove("active"));
+            const sectionId = this.getAttribute("data-section");
+            document.getElementById(sectionId).classList.add("active");
+          });
+        });
+
+        displayDesignerName();
+        loadTemplates();
+
+        // Fetch and display the designer's name
+        async function displayDesignerName() {
+          try {
+            const response = await fetch(
+              "http://localhost:3000/designer/profile",
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
                 },
               }
             );
@@ -392,30 +533,29 @@
               method: "GET",
               headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`, // Include token in Authorization header
+                Authorization: `Bearer ${token}`,
               },
             });
 
             if (!response.ok) throw new Error("Failed to fetch templates");
             const templates = await response.json();
-            displayTemplates(templates); // Display templates in the UI
+            displayTemplates(templates);
           } catch (error) {
             console.error("Error fetching templates:", error);
           }
         }
 
-        // Display templates in the "Uploaded Templates" section
         function displayTemplates(templates) {
           const templateList = document.getElementById("templateList");
-          templateList.innerHTML = ""; // Clear existing content
+          templateList.innerHTML = "";
 
           templates.forEach((template) => {
             const card = document.createElement("div");
             card.classList.add("template-card");
 
-            // Display first image as a thumbnail
+            // Display the first image as a thumbnail
             const img = document.createElement("img");
-            img.src = template.images[0]; // Assuming images is an array of URLs
+            img.src = template.images[0] || "https://via.placeholder.com/100";
             card.appendChild(img);
 
             const details = document.createElement("div");
@@ -433,25 +573,391 @@
             status.textContent = `Status: ${template.status}`;
             details.appendChild(status);
 
-            // Append details to card
+            // Upload time
+            const uploadTime = document.createElement("p");
+            uploadTime.textContent = `Uploaded on: ${new Date(
+              template.createdAt
+            ).toLocaleString()}`;
+            details.appendChild(uploadTime);
+
+            // Sales count if approved
+            if (template.status === "approved") {
+              const salesCount = document.createElement("p");
+              salesCount.textContent = `Sales ${
+                template.sales_count > 0 ? template.sales_count : "0"
+              } `;
+              details.appendChild(salesCount);
+            }
+
             card.appendChild(details);
             templateList.appendChild(card);
 
-            // Add click event to open modal with template details
+            // Add event listener to open modal with template details
             card.addEventListener("click", () => openModal(template));
           });
         }
 
-        // Open modal to show template details
+        // Function to open modal with template details
         function openModal(template) {
+          const commissionRate = 0.3;
+          const pricePerTemplate = 100;
+          const earnings =
+            template.sales_count * pricePerTemplate * commissionRate;
+
+          // Populate the modal with template details
           document.getElementById("modalDescription").textContent =
             template.description;
-          document.getElementById("modalStatus").textContent = template.status;
-          document.getElementById("largeImage").src = template.images[0]; // Show first image in modal
+          document.getElementById("modalSKU").textContent = template.sku;
+          document.getElementById(
+            "modalStatus"
+          ).textContent = `Status: ${template.status}`;
+          document.getElementById("largeImage").src = template.images[0];
+          document.getElementById(
+            "modalUploadTime"
+          ).textContent = `Uploaded on: ${new Date(
+            template.createdAt
+          ).toLocaleString()}`;
+          const modalSalesCount = document.getElementById("modalSalesCount");
 
+          // Conditionally show earnings and sale count only if the template is approved
+          const earningsElement = document.getElementById("modalEarnings");
+          if (template.status.toLowerCase() === "approved") {
+            earningsElement.textContent = `Earnings: $${template.earnings}`;
+            earningsElement.style.display = "block";
+            modalSalesCount.textContent = `Sales Count: ${
+              template.sales_count > 0 ? template.sales_count : "0"
+            }`;
+            modalSalesCount.style.display = "block";
+          } else {
+            earningsElement.style.display = "none";
+          }
+
+          // Populate thumbnails
           const thumbnails = document.getElementById("imageThumbnails");
           thumbnails.innerHTML = ""; // Clear existing thumbnails
+          template.images.forEach((src) => {
+            const thumb = document.createElement("img");
+            thumb.src = src;
+            thumb.onclick = () =>
+              (document.getElementById("largeImage").src = src);
+            thumbnails.appendChild(thumb);
+          });
 
+          // Display the modal
+          document.getElementById("templateModal").style.display = "flex";
+        }
+
+        // Close the modal
+        document.getElementById("closeModal").addEventListener("click", () => {
+          document.getElementById("templateModal").style.display = "none";
+        });
+
+        // Close modal if user clicks outside of it
+        window.addEventListener("click", (event) => {
+          if (event.target === document.getElementById("templateModal")) {
+            document.getElementById("templateModal").style.display = "none";
+          }
+        });
+
+        // Fetch and display sales data for approved templates
+        async function loadSalesData() {
+          const token = localStorage.getItem("token");
+
+          try {
+            const response = await fetch(
+              "http://localhost:3000/template/sales-data",
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            if (!response.ok) throw new Error("Failed to fetch sales data");
+            const { totalRevenue, templates } = await response.json();
+            document.getElementById(
+              "totalRevenue"
+            ).textContent = `Total Revenue: $${totalRevenue.toFixed(2)}`;
+            displayTemplatesForSales(templates);
+          } catch (error) {
+            console.error("Error fetching sales data:", error);
+          }
+        }
+
+        // Display total revenue in the Sales Track section
+        function displayTemplatesForSales(templates) {
+          const salesList = document.getElementById("salesList");
+          salesList.innerHTML = "";
+
+          templates.forEach((template) => {
+            const listItem = document.createElement("li");
+            listItem.innerHTML = `
+      <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
+        <strong>Description:</strong> ${template.description}<br>
+        <strong>SKU:</strong> ${template.sku}<br>
+        <strong>Sales Count:</strong> ${template.sales_count}<br>
+        <strong>Earnings:</strong> $${template.earnings.toFixed(2)}<br>
+        <strong>Uploaded On:</strong> ${new Date(
+          template.createdAt
+        ).toLocaleString()}
+      </div>
+    `;
+            salesList.appendChild(listItem);
+          });
+        }
+
+        document
+          .querySelector('[data-section="sales-section"]')
+          .addEventListener("click", loadSalesData);
+
+        // Display sales data in the Sales Track section
+        function displaySalesData(salesData) {
+          const salesList = document.getElementById("salesList");
+          salesList.innerHTML = ""; // Clear existing data
+
+          salesData.forEach((template) => {
+            const listItem = document.createElement("li");
+
+            listItem.innerHTML = `
+        <div style="margin-bottom: 20px; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
+          <strong>Description:</strong> ${template.description}<br>
+          <strong>SKU:</strong> ${template.sku}<br>
+          <strong>Sales Count:</strong> ${template.sales_count}<br>
+          <strong>Earnings:</strong> $${template.earnings.toFixed(2)}<br>
+          <strong>Uploaded On:</strong> ${new Date(
+            template.createdAt
+          ).toLocaleString()}<br>
+          <img src="${
+            template.images[0]
+          }" alt="Template Image" style="width: 100px; height: 100px; margin-top: 10px;">
+        </div>
+      `;
+
+            salesList.appendChild(listItem);
+          });
+        }
+
+        // Load sales data when the Sales Track section is active
+        document
+          .querySelector('[data-section="sales-section"]')
+          .addEventListener("click", loadSalesData);
+      });
+    </script> -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const sidebarItems = document.querySelectorAll(".sidebar-item");
+        const sections = document.querySelectorAll(".section");
+        const token = localStorage.getItem("token");
+
+        // Sidebar navigation
+        sidebarItems.forEach((item) => {
+          item.addEventListener("click", function () {
+            sidebarItems.forEach((i) => i.classList.remove("active"));
+            this.classList.add("active");
+            sections.forEach((section) => section.classList.remove("active"));
+            const sectionId = this.getAttribute("data-section");
+            document.getElementById(sectionId).classList.add("active");
+          });
+        });
+
+        // Initial data loading
+        displayDesignerName();
+        loadTemplates();
+
+        // Fetch and display the designer's name
+        async function displayDesignerName() {
+          try {
+            const response = await fetch(
+              "http://localhost:3000/designer/profile",
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            if (!response.ok) throw new Error("Failed to fetch profile");
+            const data = await response.json();
+            document.getElementById("designerName").textContent = `Welcome, ${
+              data.name || "Designer"
+            }!`;
+          } catch (error) {
+            console.error("Error fetching designer profile:", error);
+          }
+        }
+
+        // Handle form submission for uploading a new template
+        document
+          .getElementById("templateForm")
+          .addEventListener("submit", async function (event) {
+            event.preventDefault();
+
+            const description = document.getElementById("description").value;
+            const sku = document.getElementById("sku").value;
+            const imageFiles = document.getElementById("images").files;
+
+            // Validate input
+            if (imageFiles.length === 0) {
+              alert("Please upload at least one image.");
+              return;
+            }
+            if (imageFiles.length > 4) {
+              alert("You can only upload up to 4 images.");
+              return;
+            }
+
+            const formData = new FormData();
+            formData.append("description", description);
+            formData.append("sku", sku);
+
+            // Append images to FormData
+            for (let i = 0; i < imageFiles.length; i++) {
+              formData.append("images", imageFiles[i]);
+            }
+
+            try {
+              // Show the preloader
+              preloader.style.display = "flex";
+
+              const response = await fetch(
+                "http://localhost:3000/template/upload",
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: formData,
+                }
+              );
+
+              const result = await response.json();
+              if (response.ok) {
+                alert(result.message);
+                loadTemplates(); // Refresh templates list after upload
+                document.getElementById("templateForm").reset(); // Reset form
+              } else {
+                alert(result.message || "Failed to upload template.");
+              }
+            } catch (error) {
+              console.error("Error uploading template:", error);
+            } finally {
+              // Hide the preloader after the process is complete
+              preloader.style.display = "none";
+            }
+          });
+
+        // Load and display templates
+        async function loadTemplates() {
+          try {
+            const response = await fetch("http://localhost:3000/template", {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            if (!response.ok) throw new Error("Failed to fetch templates");
+            const templates = await response.json();
+            displayTemplates(templates);
+          } catch (error) {
+            console.error("Error fetching templates:", error);
+          }
+        }
+
+        // Display templates in the "Uploaded Templates" section
+        function displayTemplates(templates) {
+          const templateList = document.getElementById("templateList");
+          templateList.innerHTML = "";
+
+          templates.forEach((template) => {
+            const card = document.createElement("div");
+            card.classList.add("template-card");
+
+            // Display the first image as a thumbnail
+            const img = document.createElement("img");
+            img.src = template.images[0] || "https://via.placeholder.com/100";
+            card.appendChild(img);
+
+            const details = document.createElement("div");
+            details.classList.add("template-details");
+
+            // Template description
+            const description = document.createElement("p");
+            description.textContent = template.description;
+            details.appendChild(description);
+
+            // Template status
+            const status = document.createElement("p");
+            status.textContent = `Status: ${template.status}`;
+            details.appendChild(status);
+
+            // Upload time
+            const uploadTime = document.createElement("p");
+            uploadTime.textContent = `Uploaded on: ${new Date(
+              template.createdAt
+            ).toLocaleString()}`;
+            details.appendChild(uploadTime);
+
+            // Display earnings and sales count only if approved
+            if (template.status.toLowerCase() === "approved") {
+              const earnings = (template.sales_count || 0) * 100 * 0.3;
+              const salesCount = document.createElement("p");
+              salesCount.textContent = `Sales: ${template.sales_count || 0}`;
+              details.appendChild(salesCount);
+
+              const earningsElement = document.createElement("p");
+              earningsElement.textContent = `Earnings: $${earnings.toFixed(2)}`;
+              details.appendChild(earningsElement);
+            }
+
+            card.appendChild(details);
+            templateList.appendChild(card);
+
+            // Open modal on click
+            card.addEventListener("click", () => openModal(template));
+          });
+        }
+
+        // Open modal with template details
+        function openModal(template) {
+          const commissionRate = 0.3;
+          const pricePerTemplate = 100;
+          const earnings =
+            (template.sales_count || 0) * pricePerTemplate * commissionRate;
+
+          document.getElementById("modalDescription").textContent =
+            template.description;
+          document.getElementById("modalSKU").textContent = template.sku;
+          document.getElementById(
+            "modalStatus"
+          ).textContent = `Status: ${template.status}`;
+          document.getElementById("largeImage").src = template.images[0];
+          document.getElementById(
+            "modalUploadTime"
+          ).textContent = `Uploaded on: ${new Date(
+            template.createdAt
+          ).toLocaleString()}`;
+
+          const modalSalesCount = document.getElementById("modalSalesCount");
+          const earningsElement = document.getElementById("modalEarnings");
+
+          if (template.status.toLowerCase() === "approved") {
+            earningsElement.textContent = `Earnings: $${earnings.toFixed(2)}`;
+            earningsElement.style.display = "block";
+            modalSalesCount.textContent = `Sales Count: ${
+              template.sales_count || 0
+            }`;
+            modalSalesCount.style.display = "block";
+          } else {
+            earningsElement.style.display = "none";
+            modalSalesCount.style.display = "none";
+          }
+
+          const thumbnails = document.getElementById("imageThumbnails");
+          thumbnails.innerHTML = "";
           template.images.forEach((src) => {
             const thumb = document.createElement("img");
             thumb.src = src;
@@ -463,14 +969,54 @@
           document.getElementById("templateModal").style.display = "flex";
         }
 
-        // Close modal
+        // Close the modal
         document.getElementById("closeModal").addEventListener("click", () => {
           document.getElementById("templateModal").style.display = "none";
         });
 
-        // Initialize by fetching designer name and templates
-        displayDesignerName();
-        loadTemplates();
+        // Load sales data
+        async function loadSalesData() {
+          try {
+            const response = await fetch(
+              "http://localhost:3000/template/sales-data",
+              {
+                method: "GET",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            if (!response.ok) throw new Error("Failed to fetch sales data");
+            const { totalRevenue, templates } = await response.json();
+            document.getElementById(
+              "totalRevenue"
+            ).textContent = `Total Revenue: $${totalRevenue.toFixed(2)}`;
+            displayTemplatesForSales(templates);
+          } catch (error) {
+            console.error("Error fetching sales data:", error);
+          }
+        }
+
+        function displayTemplatesForSales(templates) {
+          const salesList = document.getElementById("salesList");
+          salesList.innerHTML = "";
+
+          templates.forEach((template) => {
+            const listItem = document.createElement("li");
+            listItem.innerHTML = `
+          <div style="border: 1px solid #ddd; padding: 10px;">
+            <strong>Description:</strong> ${template.description}<br>
+            <strong>Sales:</strong> ${template.sales_count || 0}<br>
+            <strong>Earnings:</strong> $${template.earnings.toFixed(2)}
+          </div>`;
+            salesList.appendChild(listItem);
+          });
+        }
+
+        document
+          .querySelector('[data-section="sales-section"]')
+          .addEventListener("click", loadSalesData);
       });
     </script>
   </body>
