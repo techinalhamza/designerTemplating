@@ -79,13 +79,16 @@ exports.loginDesigner = async (req, res) => {
 
     // Generate a JWT token
     const token = jwt.sign({ id: designer._id }, SECRET_KEY, {
-      expiresIn: "1h",
+      expiresIn: "1d",
     });
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
+      secure: false, // Set to true if using HTTPS in production
+      sameSite: "lax",
+      expires: new Date(Date.now() + 3600000), // Expires in 1 hour
     });
+    console.log("Set token cookie:", req.cookies.token);
+
     // Send token in response
     res.json({ success: true, token, message: "Login successful!" });
   } catch (error) {

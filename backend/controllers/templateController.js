@@ -1,7 +1,15 @@
-// controllers/templateController.js
 const { Template } = require("../models");
+const cloudinary = require("cloudinary").v2;
+const fs = require("fs");
 
-// Upload a template with images
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: "dwnolb6h5",
+  api_key: "143551781416216",
+  api_secret: "YfkCyzpwAgVpRQHME49FS-7YMXI",
+});
+
+// Upload a template with images to Cloudinary
 exports.uploadTemplate = async (req, res) => {
   const { description, sku } = req.body;
 
@@ -10,14 +18,27 @@ exports.uploadTemplate = async (req, res) => {
     return res.status(400).json({ message: "No files were uploaded." });
   }
 
-  const images = req.files.map((file) => file.path); // Store file paths in an array
+  const images = []; // Array to store Cloudinary URLs
 
   try {
+    // Loop through each uploaded file, upload it to Cloudinary, and delete from server
+    for (const file of req.files) {
+      // Upload image to Cloudinary
+      const result = await cloudinary.uploader.upload(file.path, {
+        folder: "templates",
+      });
+      images.push(result.secure_url); // Store the Cloudinary URL
+
+      // Delete the file from local server
+      fs.unlinkSync(file.path);
+    }
+
+    // Save the template to the database with Cloudinary URLs
     const template = new Template({
       designerId: req.user.id,
       description,
       sku,
-      images, // Store image paths in the template model
+      images, // Store Cloudinary URLs in the template model
     });
 
     await template.save();

@@ -5,7 +5,6 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser"); // For cookie handling
 const multer = require("multer"); // For file uploads
 const path = require("path");
-
 const authRoutes = require("./routes/authRoutes");
 const designerRoutes = require("./routes/designerRoutes");
 const templateRoutes = require("./routes/templateRoutes");
@@ -20,7 +19,6 @@ const corsOptions = {
 
 // Middleware setup
 app.use(cors(corsOptions));
-// app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser()); // Enable cookies
 
