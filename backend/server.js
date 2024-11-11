@@ -10,6 +10,7 @@ const designerRoutes = require("./routes/designerRoutes");
 const templateRoutes = require("./routes/templateRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 require("./config/database"); // Connect to the database
+const notificationRoutes = require("./routes/notificationRoutes");
 
 const app = express();
 const corsOptions = {
@@ -30,6 +31,9 @@ app.use("/auth", authRoutes);
 app.use("/designer", designerRoutes);
 app.use("/template", templateRoutes); // Use the template routes with the "/template" prefix
 app.use("/admin", adminRoutes);
+
+// notifiction route
+app.use("/notifications", notificationRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

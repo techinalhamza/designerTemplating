@@ -1,6 +1,7 @@
 const { Template } = require("../models");
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
+const Notification = require("../models/Notification");
 
 // Configure Cloudinary
 cloudinary.config({
@@ -52,12 +53,26 @@ exports.uploadTemplate = async (req, res) => {
 };
 
 // Get templates by designer
+// Get templates by designer
 exports.getDesignerTemplates = async (req, res) => {
   try {
-    const templates = await Template.find({ designerId: req.user.id }).select(
-      "description images sku status createdAt"
+    const designerId = req.user.id;
+
+    // Fetch all templates for the current designer
+    const templates = await Template.find({ designerId }).select(
+      "description images sku status sales_count createdAt"
     );
-    res.json(templates);
+
+    // Calculate earnings for each template
+    const pricePerTemplate = 100;
+    const commissionRate = 0.3;
+
+    const templatesWithEarnings = templates.map((template) => ({
+      ...template._doc,
+      earnings: template.sales_count * pricePerTemplate * commissionRate,
+    }));
+
+    res.json(templatesWithEarnings);
   } catch (error) {
     console.error("Error fetching templates:", error);
     res.status(500).send("Error fetching templates.");
@@ -91,5 +106,47 @@ exports.getSalesData = async (req, res) => {
   } catch (error) {
     console.error("Error fetching sales data:", error);
     res.status(500).json({ message: "Error fetching sales data." });
+  }
+};
+
+// Notify designer on template approval
+const notifyDesigner = async (designerId, message, type) => {
+  await Notification.create({ designerId, message, type });
+};
+// Function to update the status of a template
+exports.updateTemplateStatus = async (req, res) => {
+  const { templateId, status } = req.body;
+
+  try {
+    // Fetch the template from the database
+    const template = await Template.findById(templateId);
+
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    // Update the status
+    template.status = status;
+    await template.save();
+
+    // Notify designer based on the updated status
+    if (template.status === "approved") {
+      await notifyDesigner(
+        template.designerId,
+        "Your template has been approved!",
+        "approval"
+      );
+    } else if (template.status === "rejected") {
+      await notifyDesigner(
+        template.designerId,
+        "Your template has been rejected.",
+        "rejection"
+      );
+    }
+
+    res.json({ message: "Template status updated successfully" });
+  } catch (error) {
+    console.error("Error updating template status:", error);
+    res.status(500).json({ message: "Failed to update template status" });
   }
 };

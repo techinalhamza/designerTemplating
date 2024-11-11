@@ -5,6 +5,7 @@ const authenticateToken = require("../middleware/authMiddleware");
 const multer = require("multer");
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
+const { Template } = require("../models");
 
 // Configure Cloudinary
 cloudinary.config({
@@ -39,4 +40,47 @@ router.get("/", authenticateToken, templateController.getDesignerTemplates);
 // Route for fetching sales data for templates
 router.get("/sales-data", authenticateToken, templateController.getSalesData);
 
+// Route to update sales count for testing
+router.post("/update-sales", authenticateToken, async (req, res) => {
+  const { templateId, salesCount } = req.body;
+
+  try {
+    const template = await Template.findByIdAndUpdate(
+      templateId,
+      { $set: { sales_count: salesCount, status: "approved" } },
+      { new: true }
+    );
+
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    res.json({ message: "Sales count updated successfully", template });
+  } catch (error) {
+    console.error("Error updating sales count:", error);
+    res.status(500).json({ message: "Failed to update sales count" });
+  }
+});
+
+// Route to update sales count for testing
+router.post("/update-sales", authenticateToken, async (req, res) => {
+  const { templateId, salesCount } = req.body;
+
+  try {
+    const template = await Template.findByIdAndUpdate(
+      templateId,
+      { $set: { sales_count: salesCount, status: "approved" } },
+      { new: true }
+    );
+
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    res.json({ message: "Sales count updated successfully", template });
+  } catch (error) {
+    console.error("Error updating sales count:", error);
+    res.status(500).json({ message: "Failed to update sales count" });
+  }
+});
 module.exports = router;

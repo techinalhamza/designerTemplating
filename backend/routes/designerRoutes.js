@@ -13,4 +13,20 @@ router.put(
   authenticateToken,
   designerController.updatePaymentInfo
 );
+
+// Route to get designer stats for dashboard
+router.get("/stats", authenticateToken, designerController.getStats);
+router.get(
+  "/sales-chart",
+  authenticateToken,
+  designerController.getSalesChartData
+);
+
+// Route for updating payment information
+router.put(
+  "/update-payment-info",
+  authenticateToken,
+  designerController.updatePaymentInfo
+);
+
 module.exports = router;
