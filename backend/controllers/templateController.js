@@ -11,6 +11,7 @@ cloudinary.config({
 });
 
 // Upload a template with images to Cloudinary
+// Upload a template with images to Cloudinary
 exports.uploadTemplate = async (req, res) => {
   const { description, sku } = req.body;
 
@@ -20,17 +21,15 @@ exports.uploadTemplate = async (req, res) => {
   }
 
   const images = [];
+  const uploadedFiles = req.files.map((file) => file.path); // Track uploaded file paths
 
   try {
-    // Upload each image to Cloudinary and delete from server
+    // Upload each image to Cloudinary
     for (const file of req.files) {
       const result = await cloudinary.uploader.upload(file.path, {
         folder: "templates",
       });
       images.push(result.secure_url);
-
-      // Delete the file from local storage
-      fs.unlinkSync(file.path);
     }
 
     // Save the template to the database with Cloudinary URLs
@@ -49,6 +48,17 @@ exports.uploadTemplate = async (req, res) => {
   } catch (error) {
     console.error("Error uploading template:", error);
     res.status(500).json({ message: "Template upload failed" });
+  } finally {
+    // Always remove uploaded files from the local server
+    uploadedFiles.forEach((filePath) => {
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+        } catch (err) {
+          console.error(`Failed to delete file: ${filePath}`, err);
+        }
+      }
+    });
   }
 };
 
