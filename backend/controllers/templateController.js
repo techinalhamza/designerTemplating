@@ -37,7 +37,7 @@ exports.uploadTemplate = async (req, res) => {
       description,
       sku,
       images,
-      status: "pending",
+      status: "Pending",
     });
 
     await template.save();
@@ -159,32 +159,29 @@ exports.updateTemplateStatus = async (req, res) => {
   }
 };
 
-// Function to assign a UPC code manually by admin
-exports.assignUPCCode = async (req, res) => {
-  const { templateId, upcCode } = req.body;
+// Assign UPC code
+exports.assignUpc = async (req, res) => {
+  const { templateId, upc } = req.body;
 
   try {
     const template = await Template.findById(templateId);
-    if (!template) {
+    if (!template)
       return res.status(404).json({ message: "Template not found" });
+
+    if (template.status !== "Templated") {
+      return res
+        .status(400)
+        .json({
+          message: "Template must be in 'Templated' status to assign a UPC",
+        });
     }
 
-    // Assign the UPC code to the template
-    template.upcCode = upcCode;
-    template.status = "Templated"; // Update status to "Templated" once UPC is assigned
+    template.upc = upc;
     await template.save();
-
-    // Notify designer about the UPC assignment
-    await notifyDesigner(
-      template.designerId,
-      `A UPC code has been assigned to your design: ${upcCode}`,
-      "upc_assignment"
-    );
-
-    res.json({ message: "UPC code assigned successfully", template });
+    res.json({ message: "UPC assigned successfully", template });
   } catch (error) {
-    console.error("Error assigning UPC code:", error);
-    res.status(500).json({ message: "Failed to assign UPC code" });
+    console.error("Error assigning UPC:", error);
+    res.status(500).json({ message: "Failed to assign UPC" });
   }
 };
 

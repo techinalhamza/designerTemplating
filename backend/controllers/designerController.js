@@ -49,45 +49,6 @@ exports.updatePaymentInfo = async (req, res) => {
   }
 };
 
-// Get statistics for the designer
-// exports.getStats = async (req, res) => {
-//   try {
-//     const designerId = req.user.id;
-
-//     const approvedTemplates = await Template.countDocuments({
-//       designerId,
-//       status: "approved",
-//     });
-
-//     const pendingTemplates = await Template.countDocuments({
-//       designerId,
-//       status: "pending",
-//     });
-
-//     const rejectedTemplates = await Template.countDocuments({
-//       designerId,
-//       status: "rejected",
-//     });
-
-//     const totalSales = await Template.aggregate([
-//       { $match: { designerId: designerId, status: "approved" } },
-//       { $group: { _id: null, total: { $sum: "$sales_count" } } },
-//     ]);
-
-//     const totalSalesAmount = (totalSales[0]?.total || 0) * 100; // Assuming each sale is $100
-
-//     res.json({
-//       approvedTemplates,
-//       pendingTemplates,
-//       rejectedTemplates,
-//       totalSales: totalSalesAmount,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching designer stats:", error);
-//     res.status(500).json({ message: "Failed to fetch stats" });
-//   }
-// };
-
 // Get designer stats for dashboard
 exports.getStats = async (req, res) => {
   try {
@@ -103,7 +64,7 @@ exports.getStats = async (req, res) => {
     // Calculate total pending templates
     const pendingTemplates = await Template.find({
       designerId,
-      status: "pending",
+      status: "Pending",
     });
     const totalPending = pendingTemplates.length;
 
@@ -129,135 +90,6 @@ exports.getStats = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch stats" });
   }
 };
-
-// Get sales data for generating a chart
-// exports.getSalesChartData = async (req, res) => {
-//   try {
-//     const designerId = req.user.id;
-
-//     // Group sales data by month
-//     const salesData = await Template.aggregate([
-//       {
-//         $match: {
-//           designerId: new mongoose.Types.ObjectId(designerId),
-//           status: "approved",
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: { $month: "$createdAt" },
-//           totalSales: { $sum: "$sales_count" },
-//           totalEarnings: { $sum: { $multiply: ["$sales_count", 100] } }, // Assuming $100 per sale
-//         },
-//       },
-//       { $sort: { _id: 1 } }, // Sort by month
-//     ]);
-
-//     res.json(salesData);
-//   } catch (error) {
-//     console.error("Error fetching sales chart data:", error);
-//     res.status(500).json({ message: "Failed to fetch sales chart data" });
-//   }
-// };
-// Get sales data for generating a chart
-// exports.getSalesChartData = async (req, res) => {
-//   try {
-//     const designerId = req.user.id;
-
-//     // Group sales data by month
-//     const salesData = await Template.aggregate([
-//       {
-//         $match: {
-//           designerId: new mongoose.Types.ObjectId(designerId),
-//           status: "approved",
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: { $month: "$createdAt" },
-//           totalSales: { $sum: "$sales_count" },
-//           totalEarnings: { $sum: { $multiply: ["$sales_count", 100 * 0.3] } }, // Assuming $100 per sale with 30% commission
-//         },
-//       },
-//       { $sort: { _id: 1 } }, // Sort by month
-//     ]);
-
-//     // Convert month numbers to month names
-//     const months = [
-//       "Jan",
-//       "Feb",
-//       "Mar",
-//       "Apr",
-//       "May",
-//       "Jun",
-//       "Jul",
-//       "Aug",
-//       "Sep",
-//       "Oct",
-//       "Nov",
-//       "Dec",
-//     ];
-//     const formattedData = salesData.map((item) => ({
-//       month: months[item._id - 1],
-//       totalSales: item.totalSales,
-//       totalEarnings: item.totalEarnings,
-//     }));
-
-//     res.json(formattedData);
-//   } catch (error) {
-//     console.error("Error fetching sales chart data:", error);
-//     res.status(500).json({ message: "Failed to fetch sales chart data" });
-//   }
-// };
-// exports.getSalesChartData = async (req, res) => {
-//   try {
-//     const designerId = req.user.id;
-
-//     // Aggregate sales data by month
-//     const salesData = await Template.aggregate([
-//       {
-//         $match: {
-//           designerId: new mongoose.Types.ObjectId(designerId),
-//           status: "approved",
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: { $month: "$createdAt" },
-//           totalSales: { $sum: "$sales_count" },
-//           totalEarnings: { $sum: { $multiply: ["$sales_count", 100 * 0.3] } }, // Assuming $100 per sale with 30% commission
-//         },
-//       },
-//       { $sort: { _id: 1 } }, // Sort by month
-//     ]);
-
-//     // Convert month numbers to names
-//     const months = [
-//       "Jan",
-//       "Feb",
-//       "Mar",
-//       "Apr",
-//       "May",
-//       "Jun",
-//       "Jul",
-//       "Aug",
-//       "Sep",
-//       "Oct",
-//       "Nov",
-//       "Dec",
-//     ];
-//     const formattedData = salesData.map((item) => ({
-//       month: months[item._id - 1],
-//       totalSales: item.totalSales,
-//       totalEarnings: item.totalEarnings,
-//     }));
-
-//     res.json(formattedData);
-//   } catch (error) {
-//     console.error("Error fetching sales chart data:", error);
-//     res.status(500).json({ message: "Failed to fetch sales chart data" });
-//   }
-// };
 
 exports.getSalesChartData = async (req, res) => {
   try {

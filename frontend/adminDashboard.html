@@ -123,6 +123,9 @@
         width: 80%;
         text-align: center;
       }
+      div#imageThumbnails img {
+        width: 10%;
+      }
     </style>
   </head>
   <body>
@@ -229,6 +232,9 @@
           <h3 id="modalDescription"></h3>
           <p>Status: <span id="modalStatus"></span></p>
           <p>Sales Count: <span id="modalSalesCount"></span></p>
+          <!-- New UPC input field for Admin to assign -->
+          <label for="upcInput">Assign UPC Code:</label>
+          <input type="text" id="upcInput" placeholder="Enter UPC code here" />
           <img
             id="largeImage"
             src=""
@@ -553,6 +559,25 @@
       // Load templates data on page load
       loadTemplates();
 
+      function displayPaymentDetails(payment) {
+        switch (payment.payment_method) {
+          case "paypal":
+            return `PayPal Email: ${
+              payment.payment_details?.paypal_email || "N/A"
+            }`;
+          case "venmo":
+            return `Venmo Username: ${
+              payment.payment_details?.venmo_username || "N/A"
+            }`;
+          case "cashapp":
+            return `CashApp Username: ${
+              payment.payment_details?.cashapp_username || "N/A"
+            }`;
+          default:
+            return "No payment details available";
+        }
+      }
+
       async function loadPayments() {
         paymentsData = await fetchData("http://localhost:3000/admin/payments");
         const paymentsTableBody = document
@@ -565,7 +590,7 @@
           row.innerHTML = `
               <td>${payment.designerName}</td>
               <td>${payment.payment_method}</td>
-              <td>${payment.payment_details}</td>
+              <td>${displayPaymentDetails(payment)}</td>
             `;
           paymentsTableBody.appendChild(row);
         });
@@ -799,6 +824,48 @@
       document
         .querySelector('[data-section="sales"]')
         .addEventListener("click", loadAdminSalesChartData);
+
+      async function updateTemplateStatus(templateId, newStatus) {
+        const response = await fetch(
+          "http://localhost:3000/admin/update-status",
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ templateId, status: newStatus }),
+          }
+        );
+
+        if (response.ok) {
+          alert("Status updated successfully");
+          loadTemplates(); // Reload templates list
+        } else {
+          alert("Failed to update status");
+        }
+      }
+
+      async function assignUpc(templateId) {
+        const upc = prompt("Enter UPC code:");
+        if (!upc) return;
+
+        const response = await fetch("http://localhost:3000/admin/assign-upc", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ templateId, upc }),
+        });
+
+        if (response.ok) {
+          alert("UPC assigned successfully");
+          loadTemplates(); // Reload templates list
+        } else {
+          alert("Failed to assign UPC");
+        }
+      }
     </script>
   </body>
 </html>
