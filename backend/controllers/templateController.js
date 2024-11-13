@@ -11,7 +11,6 @@ cloudinary.config({
 });
 
 // Upload a template with images to Cloudinary
-// Upload a template with images to Cloudinary
 exports.uploadTemplate = async (req, res) => {
   const { description, sku } = req.body;
 
@@ -62,7 +61,6 @@ exports.uploadTemplate = async (req, res) => {
   }
 };
 
-// Get templates by designer
 // Get templates by designer
 exports.getDesignerTemplates = async (req, res) => {
   try {
@@ -158,5 +156,48 @@ exports.updateTemplateStatus = async (req, res) => {
   } catch (error) {
     console.error("Error updating template status:", error);
     res.status(500).json({ message: "Failed to update template status" });
+  }
+};
+
+// Function to assign a UPC code manually by admin
+exports.assignUPCCode = async (req, res) => {
+  const { templateId, upcCode } = req.body;
+
+  try {
+    const template = await Template.findById(templateId);
+    if (!template) {
+      return res.status(404).json({ message: "Template not found" });
+    }
+
+    // Assign the UPC code to the template
+    template.upcCode = upcCode;
+    template.status = "Templated"; // Update status to "Templated" once UPC is assigned
+    await template.save();
+
+    // Notify designer about the UPC assignment
+    await notifyDesigner(
+      template.designerId,
+      `A UPC code has been assigned to your design: ${upcCode}`,
+      "upc_assignment"
+    );
+
+    res.json({ message: "UPC code assigned successfully", template });
+  } catch (error) {
+    console.error("Error assigning UPC code:", error);
+    res.status(500).json({ message: "Failed to assign UPC code" });
+  }
+};
+
+// Get all templates that require a UPC assignment
+exports.getPendingTemplatesForUPC = async (req, res) => {
+  try {
+    const templates = await Template.find({
+      status: "Templated",
+      upcCode: { $exists: false },
+    });
+    res.json(templates);
+  } catch (error) {
+    console.error("Error fetching templates needing UPC:", error);
+    res.status(500).json({ message: "Error fetching templates." });
   }
 };

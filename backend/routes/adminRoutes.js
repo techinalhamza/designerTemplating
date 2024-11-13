@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const authenticateAdmin = require("../middleware/authAdmin");
-
+const templateController = require("../controllers/templateController");
 // Admin login
 router.post("/login", adminController.loginAdmin);
 
@@ -40,6 +40,14 @@ router.get(
   adminController.getSalesChartData
 );
 router.get("/payments", authenticateAdmin, adminController.getPayments);
+// Route to assign UPC code
+router.put("/assign-upc", authenticateAdmin, templateController.assignUPCCode);
+// Route to fetch templates that need UPC assignment
+router.get(
+  "/pending-upc",
+  authenticateAdmin,
+  templateController.getPendingTemplatesForUPC
+);
 
 module.exports = router;
 
